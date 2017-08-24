@@ -936,30 +936,41 @@ public class QaMaMService {
     }
 
     private static String updateUserDetails(String surveyeeName, String teamName, String portfolioName){
-        String[] dbDetails = getDBDetailsSurvey();
+        String sql = String.format("REPLACE INTO TeamNames " +
+                "VALUES ('%s','%s', '%s')", surveyeeName, teamName, portfolioName);
+        String methodName = "updateUserDetails";
+        String operationType = "inserted";
+        return runUpdateQuery(operationType, sql, methodName);
+    }
 
+    private static String deleteUser(String surveyeeName, String teamName, String portfolioName){
+        String sql = String.format("DELETE FROM TeamNames " +
+                "WHERE bioName = '%s' AND teamName = '%s' AND portfolio = '%s'", surveyeeName, teamName, portfolioName);
+        String methodName = "deleteUser";
+        String operationType = "deleted";
+        return runUpdateQuery(operationType, sql, methodName);
+    }
+
+    private static String runUpdateQuery(String operationType, String sqlQuery, String methodName){
+        String[] dbDetails = getDBDetailsSurvey();
         try {
             Class.forName("com.mysql.jdbc.Driver");
             Connection conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
             Statement stmt = conn.createStatement();
+            int returnedRecord = stmt.executeUpdate(sqlQuery);
 
-            String sql = String.format("REPLACE INTO TeamNames " +
-                    "VALUES ('%s','%s', '%s')", surveyeeName, teamName, portfolioName);
-
-            int insertedRecord = stmt.executeUpdate(sql);
-
-            if (insertedRecord > 0) {
-                return "Successfully inserted record";
+            if (returnedRecord > 0) {
+                return String.format("Successfully %s record", operationType);
             } else {
-                return "Record not inserted";
+                return String.format("Record not %s", operationType);
             }
         }
         catch (SQLException exception){
-            logger.error("Error Code - sql - updateUserDetails: " + exception.toString());
+            logger.error(String.format("Error Code - sql - %s: %s", methodName, exception.toString()));
             return "Error Code: " + exception.toString();
         }
         catch (Exception exception){
-            logger.error("Error Code - non-sql - updateUserDetails: " + exception.toString());
+            logger.error(String.format("Error Code - non-sql - %s: %s", methodName ,exception.toString()));
             return "Error Code: " + exception.toString();
         }
     }
@@ -1297,6 +1308,15 @@ public class QaMaMService {
                 String teamName = request.queryParams("teamName");
                 String portfolioName = request.queryParams("portfolio");
                 return updateUserDetails(surveyeeName, teamName, portfolioName);
+            }
+        });
+
+        delete("/delete", new Route() {
+            public Object handle(Request request, Response res) throws Exception {
+                String surveyeeName = request.queryParams("surveyee");
+                String teamName = request.queryParams("teamName");
+                String portfolioName = request.queryParams("portfolio");
+                return deleteUser(surveyeeName, teamName, portfolioName);
             }
         });
 
