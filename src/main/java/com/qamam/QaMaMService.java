@@ -1164,8 +1164,8 @@ public class QaMaMService {
             public Object handle(Request request, Response response) throws Exception {
                 JSONObject json = new JSONObject(request.body());
 
-                String BIO, softwareScore, agileCoachingScore, changeAndReleaseScore, qualityEngineeringScore,
-                        enterpriseArchitectureScore, solutionsArchitectureScore, dataServicesScore, rawData;
+                String BIO, softwareScore, agileCoachingScore, changeAndReleaseScore, qualityEngineeringScore, rawData,
+                        enterpriseArchitectureScore, solutionsArchitectureScore, dataServicesScore, selectedPracticeTeam;
 
                 try {
                     BIO = json.get("BIO").toString();
@@ -1230,6 +1230,13 @@ public class QaMaMService {
                     rawData = "";
                 }
 
+                try {
+                    selectedPracticeTeam = json.get("selectedPracticeTeam").toString();
+                }
+                catch(Exception ex){
+                    selectedPracticeTeam = "";
+                }
+
 
 
                 String[] dbDetails = getDBDetailsSurvey();
@@ -1239,8 +1246,14 @@ public class QaMaMService {
                     Connection conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
                     Statement stmt = conn.createStatement();
 
+                    String teamName = getColumnName(BIO, "teamName");
+
+                    if(!selectedPracticeTeam.equals("")){
+                        teamName = selectedPracticeTeam;
+                    }
+
                     String sql = String.format("REPLACE INTO SurveyResults " +
-                                    "VALUES ('%s','%s', '%s', '%s',%s,%s,%s,%s,%s,%s,%s,'%s')", BIO, getColumnName(BIO, "teamName"),
+                                    "VALUES ('%s','%s', '%s', '%s',%s,%s,%s,%s,%s,%s,%s,'%s')", BIO, teamName,
                             getColumnName(BIO, "portfolio"), getQuarter(), softwareScore, agileCoachingScore,
                             changeAndReleaseScore, qualityEngineeringScore, enterpriseArchitectureScore,
                             solutionsArchitectureScore, dataServicesScore, rawData);
