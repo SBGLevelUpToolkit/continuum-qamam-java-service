@@ -1258,14 +1258,16 @@ public class QaMaMService {
                     Statement stmt = conn.createStatement();
 
                     String teamName = getColumnName(BIO, "teamName");
+                    String portfolio = getColumnName(BIO, "portfolio");
 
                     if(!selectedPracticeTeam.equals("")){
                         teamName = selectedPracticeTeam;
+                        portfolio = selectedPracticeTeam;
                     }
 
                     String sql = String.format("REPLACE INTO SurveyResults " +
                                     "VALUES ('%s','%s', '%s', '%s',%s,%s,%s,%s,%s,%s,%s,'%s')", BIO, teamName,
-                            getColumnName(BIO, "portfolio"), getQuarter(), softwareScore, agileCoachingScore,
+                            portfolio, getQuarter(), softwareScore, agileCoachingScore,
                             changeAndReleaseScore, qualityEngineeringScore, enterpriseArchitectureScore,
                             solutionsArchitectureScore, dataServicesScore, rawData);
 
