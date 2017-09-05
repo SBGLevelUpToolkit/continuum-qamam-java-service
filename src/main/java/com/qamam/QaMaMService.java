@@ -750,7 +750,7 @@ public class QaMaMService {
             Connection conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
             Statement stmt = conn.createStatement();
 
-            String queryStatement = "SELECT * from TeamNames";
+            String queryStatement = "SELECT * from TeamNames ORDER BY bioName ASC";
 
             ResultSet resultSet = stmt.executeQuery(queryStatement);
             while(resultSet.next()){
