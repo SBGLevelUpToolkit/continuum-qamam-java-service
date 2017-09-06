@@ -697,6 +697,35 @@ public class QaMaMService {
         }
     }
 
+    private static void createTableIfItDoesNotExistsPipeline(){
+        Connection conn = null;
+        Statement statement = null;
+        String[] dbDetails = getDBDetails();
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
+            statement = conn.createStatement();
+            String sqlCreate = "CREATE TABLE IF NOT EXISTS PipelineAssessmentResults"
+                    + "  (teamName           VARCHAR(150),"
+                    + "   ciScore            INTEGER,"
+                    + "   infrastructureScore        INTEGER,"
+                    + "   environmentsScore   INTEGER,"
+                    + "   qaScore            INTEGER,"
+                    + "   codingPracticesScore     INTEGER,"
+                    + "   monitoringScore     INTEGER,"
+                    + "   resilienceScore     INTEGER,"
+                    + "   generalPipelineScore     INTEGER,"
+                    + "   rawdata            longtext,"
+                    + "   UNIQUE KEY my_unique_key (teamName))";
+
+            statement.execute(sqlCreate);
+        }
+        catch (Exception exception){
+            logger.error(exception.getMessage());
+        }
+    }
+
     private static String[] getDBDetailsSurvey() {
         try {
             Properties props = new Properties();
@@ -971,6 +1000,164 @@ public class QaMaMService {
         }
         catch (Exception exception){
             logger.error(String.format("Error Code - non-sql - %s: %s", methodName ,exception.toString()));
+            return "Error Code: " + exception.toString();
+        }
+    }
+
+    private static PipelineResult getPipelineResults(String teamName){
+        Connection conn = null;
+        Statement stmt = null;
+        createTableIfItDoesNotExistsPipeline();
+
+        PipelineResult pipelineResult = new PipelineResult();
+        String[] dbDetails = getDBDetails();
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
+            stmt = conn.createStatement();
+
+            String queryStatement = String.format("SELECT * from PipelineAssessmentResults where teamName = '%s'", teamName);
+            ResultSet resultSet = stmt.executeQuery(queryStatement);
+
+            while (resultSet.next()){
+                    pipelineResult.setCiScore(resultSet.getString("ciScore"));
+                    pipelineResult.setCi(resultSet.getString("rawData"));
+
+                    pipelineResult.setInfrastructureScore(resultSet.getString("infrastructureScore"));
+                    pipelineResult.setInfrastructure(resultSet.getString("rawData"));
+
+                    pipelineResult.setEnvironmentsScore(resultSet.getString("environmentsScore"));
+                    pipelineResult.setEnvironments(resultSet.getString("rawData"));
+
+                    pipelineResult.setQaScore(resultSet.getString("qaScore"));
+                    pipelineResult.setQa(resultSet.getString("rawData"));
+
+                    pipelineResult.setCodingPracticesScore(resultSet.getString("codingPracticesScore"));
+                    pipelineResult.setCodingPractices(resultSet.getString("rawData"));
+
+                    pipelineResult.setMonitoringScore(resultSet.getString("monitoringScore"));
+                    pipelineResult.setMonitoring(resultSet.getString("rawData"));
+
+                    pipelineResult.setResilienceScore(resultSet.getString("resilienceScore"));
+                    pipelineResult.setResilience(resultSet.getString("rawData"));
+
+                    pipelineResult.setGeneralPipelineScore(resultSet.getString("generalPipelineScore"));
+                    pipelineResult.setGeneralPipeline(resultSet.getString("rawData"));
+
+                    pipelineResult.setRawData(resultSet.getString("rawData"));
+            }
+
+            return pipelineResult;
+        }
+        catch (Exception exception){
+            logger.error(exception.getMessage());
+            return pipelineResult;
+        }
+    }
+
+    private static String savePipelineResults(JSONObject json) {
+        String teamName, ciScore, infrastructureScore, environmentsScore, qaScore, codingPracticesScore,
+                monitoringScore, resilienceScore, generalPipelineScore, rawData;
+
+        try {
+            ciScore = json.get("ci").toString();
+        }
+        catch(Exception ex){
+            ciScore = "";
+        }
+
+        try {
+            infrastructureScore = json.get("infrastructure").toString();
+        }
+        catch(Exception ex){
+            infrastructureScore = "";
+        }
+
+        try {
+            environmentsScore = json.get("environments").toString();
+        }
+        catch(Exception ex){
+            environmentsScore = "";
+        }
+
+        try {
+            qaScore = json.get("qa").toString();
+        }
+        catch(Exception ex){
+            qaScore = "";
+        }
+
+        try {
+            codingPracticesScore = json.get("codingPractices").toString();
+        }
+        catch(Exception ex){
+            codingPracticesScore = "";
+        }
+
+        try {
+            monitoringScore = json.get("monitoring").toString();
+        }
+        catch(Exception ex){
+            monitoringScore = "";
+        }
+
+        try {
+            resilienceScore = json.get("resilience").toString();
+        }
+        catch(Exception ex){
+            resilienceScore = "";
+        }
+
+        try {
+            generalPipelineScore = json.get("generalPipeline").toString();
+        }
+        catch(Exception ex){
+            generalPipelineScore = "";
+        }
+
+        try {
+            rawData = json.get("rawData").toString();
+        }
+        catch(Exception ex){
+            rawData = "";
+        }
+
+        try {
+            teamName = json.get("teamName").toString();
+        }
+        catch(Exception ex){
+            teamName = "";
+        }
+
+        createTableIfItDoesNotExistsPipeline();
+        String[] dbDetails = getDBDetails();
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
+            Statement stmt = conn.createStatement();
+
+
+            String sql = String.format("REPLACE INTO PipelineAssessmentResults " +
+                            "VALUES ('%s',%s,%s,%s,%s,%s,%s,%s,%s,'%s')", teamName, ciScore, infrastructureScore,
+                    environmentsScore, qaScore, codingPracticesScore, monitoringScore, resilienceScore,
+                    generalPipelineScore, rawData);
+
+            int insertedRecord = stmt.executeUpdate(sql);
+
+            if (insertedRecord > 0) {
+                return "Successfully inserted record";
+            } else {
+                return "Record not inserted";
+            }
+        }
+        catch (SQLException exception){
+            logger.error("Error Code - sql - savePipelineData: " + exception.toString());
+            return "Error Code: " + exception.toString();
+        }
+        catch (Exception exception){
+            logger.error("Error Code - non-sql - savePipelineData: " + exception.toString());
             return "Error Code: " + exception.toString();
         }
     }
@@ -1329,6 +1516,22 @@ public class QaMaMService {
             }
         }, json());
 
+
+        get("/pipeline", new Route() {
+            public Object handle(Request request, Response res) throws Exception {
+                String teamName = request.queryParams("teamName");
+                return getPipelineResults(teamName);
+            }
+        }, json());
+
+
+        post("/savePipelineData", new Route() {
+            public Object handle(Request request, Response response) throws Exception {
+                JSONObject json = new JSONObject(request.body());
+                return savePipelineResults(json);
+
+            }
+        });
 
         options("/*",
                 new Route() {
