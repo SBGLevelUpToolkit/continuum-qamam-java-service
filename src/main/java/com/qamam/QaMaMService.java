@@ -650,6 +650,21 @@ public class QaMaMService {
         }
     }
 
+    private static void updateTeamNamesTable(String bioName, String quarter){
+        String[] dbDetails = getDBDetailsSurvey();
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
+            Statement stmt = conn.createStatement();
+
+            String queryStatement = String.format("UPDATE TeamNames set completed = true, quarter = '%s' where bioName = '%s'", quarter, bioName);
+            stmt.executeUpdate(queryStatement);
+        }
+        catch (Exception exception){
+            logger.error("Error Code - getTeamNamesSurvey: " + exception.toString());
+        }
+    }
+
     private static void createDatabaseIfItDoesNotExistsQaMaM(){
         Connection conn = null;
         Statement statement = null;
@@ -1002,6 +1017,52 @@ public class QaMaMService {
             logger.error(String.format("Error Code - non-sql - %s: %s", methodName ,exception.toString()));
             return "Error Code: " + exception.toString();
         }
+    }
+
+    private static int getCountForQuery(String query){
+        int result = 0;
+        String[] dbDetails = getDBDetailsSurvey();
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
+            Statement stmt = conn.createStatement();
+
+            ResultSet resultSet = stmt.executeQuery(query);
+
+            while (resultSet.next()) {
+                result = resultSet.getInt("total");
+            }
+        }
+        catch (Exception exception){
+            logger.error("Error Code - getResultsForCTO: " + exception.toString());
+        }
+
+        return result;
+    }
+
+    private static SurveySummary getSurveySummary(){
+        String quarter = getQuarter();
+        SurveySummary surveySummary = new SurveySummary();
+        String completedCTOQuery = "Select count(*) as total from TeamNames WHERE completed = true AND portfolio = 'CTO' AND quarter = '" + quarter + "'";
+        String completedNonCTOQuery = "Select count(*) as total from TeamNames WHERE completed = true AND portfolio != 'CTO' AND quarter = '" + quarter + "'";
+        String totalCTOQuery = "Select count(*) as total from TeamNames WHERE portfolio = 'CTO'";
+        String totalNonCTOQuery = "Select count(*) as total from TeamNames WHERE portfolio != 'CTO'";
+
+        String completedCTOString = String.valueOf(getCountForQuery(completedCTOQuery));
+        String totalCTOString = String.valueOf(getCountForQuery(totalCTOQuery));
+        String completedNonCTOString = String.valueOf(getCountForQuery(completedNonCTOQuery));
+        String totalNonCTOString = String.valueOf(getCountForQuery(totalNonCTOQuery));
+
+        double completedCTO = Double.parseDouble(completedCTOString);
+        double totalCTO = Double.parseDouble(totalCTOString);
+        double completedNonCTO = Double.parseDouble(completedNonCTOString);
+        double totalNonCTO = Double.parseDouble(totalNonCTOString);
+
+        surveySummary.setCompletionRateCTO(completedCTO * 100 / totalCTO);
+        surveySummary.setCompletionRateNonCTO(completedNonCTO * 100 / totalNonCTO);
+        surveySummary.setCompletionRate((completedCTO+completedNonCTO) * 100/(totalCTO+totalNonCTO));
+        return surveySummary;
     }
 
     private static PipelineResult getPipelineResults(String teamName){
@@ -1461,6 +1522,7 @@ public class QaMaMService {
                     int insertedRecord = stmt.executeUpdate(sql);
 
                     if (insertedRecord > 0) {
+                        updateTeamNamesTable(BIO, getQuarter());
                         return "Successfully inserted record";
                     } else {
                         return "Record not inserted";
@@ -1513,6 +1575,12 @@ public class QaMaMService {
         get("/surveyees", new Route() {
             public Object handle(Request request, Response res) throws Exception {
                 return getAllSurveyees();
+            }
+        }, json());
+
+        get("/dashboard", new Route() {
+            public Object handle(Request request, Response res) throws Exception {
+                return getSurveySummary();
             }
         }, json());
 
