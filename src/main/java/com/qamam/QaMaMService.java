@@ -981,7 +981,7 @@ public class QaMaMService {
 
     private static String updateUserDetails(String surveyeeName, String teamName, String portfolioName){
         String sql = String.format("REPLACE INTO TeamNames " +
-                "VALUES ('%s','%s', '%s')", surveyeeName, teamName, portfolioName);
+                "VALUES ('%s','%s', '%s', %s, %s)", surveyeeName, teamName, portfolioName, 0, null);
         String methodName = "updateUserDetails";
         String operationType = "inserted";
         return runUpdateQuery(operationType, sql, methodName);
