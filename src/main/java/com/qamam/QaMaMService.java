@@ -741,6 +741,28 @@ public class QaMaMService {
         }
     }
 
+    private static void createTableIfItDoesNotExistsCIBSurvey(){
+        Connection conn;
+        Statement statement;
+        String[] dbDetails = getDBDetails();
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
+            statement = conn.createStatement();
+            String sqlCreate = "CREATE TABLE IF NOT EXISTS CIBSurveyResults"
+                    + "  (role           VARCHAR(150),"
+                    + "   roleLongDisplay    VARCHAR(150),"
+                    + "   practiceDisplay    VARCHAR(150),"
+                    + "   rawdata            longtext)";
+
+            statement.execute(sqlCreate);
+        }
+        catch (Exception exception){
+            logger.error(exception.getMessage());
+        }
+    }
+
     private static String[] getDBDetailsSurvey() {
         try {
             Properties props = new Properties();
@@ -1223,6 +1245,68 @@ public class QaMaMService {
         }
     }
 
+
+    private static String saveCIBSurvey(JSONObject json) {
+        String role, roleLongDisplay, practiceDisplay, rawData;
+
+        try {
+            role = json.get("role").toString();
+        }
+        catch(Exception ex){
+            role = "";
+        }
+
+        try {
+            roleLongDisplay = json.get("roleLongDisplay").toString();
+        }
+        catch(Exception ex){
+            roleLongDisplay = "";
+        }
+
+        try {
+            practiceDisplay = json.get("practiceDisplay").toString();
+        }
+        catch(Exception ex){
+            practiceDisplay = "";
+        }
+
+        try {
+            rawData = json.get("rawData").toString();
+        }
+        catch(Exception ex){
+            rawData = "";
+        }
+
+        createTableIfItDoesNotExistsCIBSurvey();
+        String[] dbDetails = getDBDetails();
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
+            Statement stmt = conn.createStatement();
+
+
+            String sql = String.format("INSERT INTO CIBSurveyResults " +
+                            "VALUES ('%s','%s','%s','%s')", role, roleLongDisplay, practiceDisplay, rawData);
+
+            int insertedRecord = stmt.executeUpdate(sql);
+
+            if (insertedRecord > 0) {
+                return "Successfully inserted record";
+            } else {
+                return "Record not inserted";
+            }
+        }
+        catch (SQLException exception){
+            logger.error("Error Code - sql - saveCIBSurveyData: " + exception.toString());
+            return "Error Code: " + exception.toString();
+        }
+        catch (Exception exception){
+            logger.error("Error Code - non-sql - saveCIBSurveyData: " + exception.toString());
+            return "Error Code: " + exception.toString();
+        }
+    }
+
     private static String getQuarter(){
         Date currentDate = new Date();
         Calendar calendar = Calendar.getInstance();
@@ -1597,6 +1681,14 @@ public class QaMaMService {
             public Object handle(Request request, Response response) throws Exception {
                 JSONObject json = new JSONObject(request.body());
                 return savePipelineResults(json);
+
+            }
+        });
+
+        post("/saveCIBSurvey", new Route() {
+            public Object handle(Request request, Response response) throws Exception {
+                JSONObject json = new JSONObject(request.body());
+                return saveCIBSurvey(json);
 
             }
         });
