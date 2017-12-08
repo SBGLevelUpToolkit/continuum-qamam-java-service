@@ -1245,7 +1245,6 @@ public class QaMaMService {
         }
     }
 
-
     private static String saveCIBSurvey(JSONObject json) {
         String role, roleLongDisplay, practiceDisplay, rawData;
 
@@ -1306,6 +1305,51 @@ public class QaMaMService {
             return "Error Code: " + exception.toString();
         }
     }
+
+    private static ArrayList<CIBSurveyResult> getCIBSurveyResults(String perspective){
+        Connection conn = null;
+        Statement stmt = null;
+        createTableIfItDoesNotExistsCIBSurvey();
+
+        ArrayList<CIBSurveyResult> cibSurveyResults = new ArrayList<CIBSurveyResult>();
+
+        String[] dbDetails = getDBDetails();
+
+        String queryStatement;
+
+        if(perspective != null && !perspective.equals("")){
+            queryStatement = String.format("SELECT * from CIBSurveyResults where roleLongDisplay = '%s'", perspective);
+        }
+        else{
+            queryStatement = String.format("SELECT * from CIBSurveyResults");
+        }
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            conn = DriverManager.getConnection(dbDetails[0], dbDetails[1], dbDetails[2]);
+            stmt = conn.createStatement();
+
+            ResultSet resultSet = stmt.executeQuery(queryStatement);
+
+            while (resultSet.next()){
+                CIBSurveyResult cibSurveyResult = new CIBSurveyResult();
+
+                cibSurveyResult.setRole(resultSet.getString("role"));
+                cibSurveyResult.setRoleLongDisplay(resultSet.getString("roleLongDisplay"));
+                cibSurveyResult.setPracticeDisplay(resultSet.getString("practiceDisplay"));
+                cibSurveyResult.setRawData(resultSet.getString("rawData"));
+
+                cibSurveyResults.add(cibSurveyResult);
+            }
+
+            return cibSurveyResults;
+        }
+        catch (Exception exception){
+            logger.error("GetCIBSurveyResults Error - " + exception.getMessage());
+            return cibSurveyResults;
+        }
+    }
+
 
     private static String getQuarter(){
         Date currentDate = new Date();
@@ -1692,6 +1736,13 @@ public class QaMaMService {
 
             }
         });
+
+        get("/CIBSurveys", new Route() {
+            public Object handle(Request request, Response res) throws Exception {
+                String perspective = request.queryParams("perspective");
+                return getCIBSurveyResults(perspective);
+            }
+        }, json());
 
         options("/*",
                 new Route() {
